@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function teacherUid() { return signedIn() && request.auth.uid == 'xok3lxvoHGQte2zOIaYM81XCHZi2'; }
+    function teacher(room) { return teacherUid() && room.data.teacherUid == request.auth.uid; }
+    function roomPath(code) { return /databases/$(database)/documents/rooms/$(code); }
+    function enrolled(code) { return signedIn() && exists(/databases/$(database)/documents/rooms/$(code)/participants/$(request.auth.uid)); }
+    function properName(n) { return n is string && n.size() >= 2 && n.size() <= 70; }
+    match /rooms/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if teacherUid() && request.auth.token.firebase.sign_in_provider == 'password'
+        && request.resource.data.keys().hasOnly(['teacherUid','status','currentIndex','createdAt','timeLimit','questionStartedAt'])
+        && request.resource.data.teacherUid == request.auth.uid
+        && request.resource.data.status == 'waiting'
+        && request.resource.data.currentIndex == -1
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.timeLimit in [10,15,20]
+        && request.resource.data.questionStartedAt == null;
+      allow update: if teacher(resource)
+        && request.resource.data.keys().hasOnly(['teacherUid','status','currentIndex','createdAt','timeLimit','questionStartedAt'])
+        && request.resource.data.teacherUid == resource.data.teacherUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.timeLimit == resource.data.timeLimit
+        && resource.data.status in ['waiting','live']
+        && (
+          (resource.data.status == 'waiting'
+            && request.resource.data.status == 'live'
+            && request.resource.data.currentIndex == 0
+            && request.resource.data.questionStartedAt == request.time)
+          ||
+          (resource.data.status == 'live'
+            && request.resource.data.status == 'live'
+            && request.resource.data.currentIndex == resource.data.currentIndex + 1
+            && request.resource.data.currentIndex <= 9
+            && request.resource.data.questionStartedAt == request.time)
+          ||
+          (resource.data.status == 'live'
+            && request.resource.data.status == 'finished'
+            && request.resource.data.currentIndex == resource.data.currentIndex
+            && request.resource.data.questionStartedAt == resource.data.questionStartedAt)
+        );
+      allow delete: if false;
+      match /participants/{uid} {
+        allow get: if signedIn() && (request.auth.uid == uid || teacher(get(roomPath(code))));
+        allow list: if teacher(get(roomPath(code)));
+        allow create: if signedIn() && request.auth.uid == uid
+          && get(roomPath(code)).data.status == 'waiting'
+          && request.resource.data.keys().hasOnly(['uid','name','joinedAt'])
+          && request.resource.data.uid == uid && properName(request.resource.data.name)
+          && request.resource.data.joinedAt == request.time;
+        allow update, delete: if false;
+      }
+      match /responses/{responseId} {
+        allow get: if signedIn() && (teacher(get(roomPath(code))) || resource.data.uid == request.auth.uid);
+        allow list: if teacher(get(roomPath(code)));
+        allow create: if enrolled(code)
+          && get(roomPath(code)).data.status == 'live'
+          && get(roomPath(code)).data.questionStartedAt is timestamp
+          && request.time <= get(roomPath(code)).data.questionStartedAt + duration.value(get(roomPath(code)).data.timeLimit, 's')
+          && responseId == request.auth.uid + '_' + string(request.resource.data.questionIndex)
+          && request.resource.data.keys().hasOnly(['uid','questionIndex','option','submittedAt'])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.questionIndex is int
+          && request.resource.data.questionIndex == get(roomPath(code)).data.currentIndex
+          && request.resource.data.option is int
+          && request.resource.data.option >= 0 && request.resource.data.option <= 3
+          && request.resource.data.submittedAt == request.time;
+        allow update, delete: if false;
+      }
+    }
+  }
+}
