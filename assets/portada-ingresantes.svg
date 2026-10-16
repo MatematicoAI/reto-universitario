@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+<defs><linearGradient id="bg"><stop stop-color="#00A7E5"/><stop offset=".45" stop-color="#0678C1"/><stop offset="1" stop-color="#062D80"/></linearGradient><linearGradient id="fade"><stop stop-color="#0065BF" stop-opacity=".08"/><stop offset="1" stop-color="#071F69" stop-opacity=".7"/></linearGradient></defs>
+<rect width="1600" height="900" fill="url(#bg)"/>
+<g opacity=".19" fill="#001A59"><path d="M830 694L1085 510L1577 415L1600 900H750Z"/><path d="M1070 570l170-112 360-73v360l-530-10z"/><path d="M1200 640h400v10h-400z"/></g>
+<g opacity=".22" stroke="#a7dbfa" stroke-width="10" fill="none"><path d="M1010 860V637l190-90 330-56v370M1090 610v256M1240 580v280M1380 540v320M1020 695h520M1020 795h520"/></g>
+<path d="M1430 900L1600 495V900Z" fill="#2D94E0" opacity=".28"/><path d="M1450 820L1600 494" stroke="#FF9207" stroke-width="7"/>
+<rect x="46" y="0" width="171" height="235" rx="29" fill="#FF8E05"/><g fill="white" font-family="Arial,sans-serif" font-weight="bold" text-anchor="middle"><text x="132" y="50" font-size="30">TOP</text><text x="132" y="146" font-size="108">3</text><text x="132" y="174" font-size="19">DEL PERÚ</text><text x="132" y="196" font-size="17">RANKING PRIVADAS</text><text x="132" y="218" font-size="14">SUNEDU 2025</text></g>
+<g fill="#fff" font-family="Arial,sans-serif"><text x="248" y="96" font-size="25" font-weight="bold">TU UNIVERSIDAD DIGITAL</text><text x="1080" y="62" font-size="32" letter-spacing="6">UNIVERSIDAD</text><text x="1072" y="135" font-size="65" font-weight="bold">CIENTÍFICA</text><text x="1480" y="173" font-size="25" fill="#FF9500">DEL SUR</text></g>
+<path d="M89 330v110" stroke="white" stroke-width="4"/>
+<g font-family="Arial,sans-serif" font-weight="bold"><text x="126" y="371" font-size="54" fill="#fff">CHARLAS</text><text x="388" y="371" font-size="54" fill="#FF9300">PARA</text><text x="126" y="431" font-size="57" fill="#FF9300">INGRESANTES</text></g>
+<g fill="#fff" font-family="Arial,sans-serif" font-weight="bold"><text x="88" y="555" font-size="71">Portal del Estudiante,</text><text x="88" y="631" font-size="71">paso a paso y</text><text x="88" y="707" font-size="71">sin complicarnos</text></g><path d="M88 747h170" stroke="#ff9409" stroke-width="7"/>
+<text x="88" y="826" font-size="31" fill="#fff" font-family="Arial,sans-serif" font-weight="bold">Docente: Telly Nestor Rojas Gutiérrez</text>
+</svg>
