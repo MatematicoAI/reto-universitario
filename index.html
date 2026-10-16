@@ -24,6 +24,17 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 <section id="teacherLogin" class="card hide"><h2>Acceso docente</h2><label>Correo<input type="email" id="email"></label><label>Contraseña<input type="password" id="password"></label><button id="login">Ingresar</button></section>
 <section id="teacherView" class="card hide"><h2>Panel docente</h2><button class="musicToggle" type="button">♫ Activar música</button><label for="timeLimit">Tiempo por pregunta</label><select id="timeLimit" style="display:block;padding:12px;margin:12px 0;border:1px solid #aebcce;border-radius:8px"><option value="10">10 segundos</option><option value="15" selected>15 segundos</option><option value="20">20 segundos</option></select><button id="make">Crear sesión</button><button id="logout">Salir</button><div id="active" class="hide"><p>Código de sesión</p><div id="roomCode" class="code"></div><p><a id="roomLink" target="_blank"></a></p><button id="start">Iniciar</button><button id="next">Siguiente pregunta</button><button id="finish" style="background:#a32238">Finalizar actividad ahora</button><button id="csv">Descargar resultados</button><p id="stats"></p><div id="teacherTimer" style="font-size:24px;font-weight:bold"></div><h3 id="teacherQuestion"></h3><div id="bars"></div><h3>Clasificación</h3><div id="ranking"></div><div id="podium" class="hide" style="margin-top:22px;padding:20px;background:#f2f4ff;border-radius:14px;text-align:center"><h2>🏆 Podio final</h2><div id="winners"></div></div></div></section>
 </main>
+<script>
+(function(){
+  const ids=['home','studentLogin','studentView','teacherLogin','teacherView'];
+  function show(id){ids.forEach(x=>{const el=document.getElementById(x);if(el)el.classList.toggle('hide',x!==id)})}
+  document.getElementById('studentOpen').addEventListener('click',()=>show('studentLogin'));
+  document.getElementById('teacherOpen').addEventListener('click',()=>show('teacherLogin'));
+  window.addEventListener('error',e=>{const n=document.getElementById('notice');if(n){n.textContent='Error al cargar la aplicación: '+(e.message||'Reintente actualizar la página.');n.classList.remove('hide')}});
+  window.addEventListener('unhandledrejection',e=>{const n=document.getElementById('notice');if(n){n.textContent='Problema de conexión o acceso: '+(e.reason?.message||String(e.reason)||'Error desconocido');n.classList.remove('hide')}});
+  const url=new URLSearchParams(location.search).get('code');if(url){const inp=document.getElementById('code');if(inp)inp.value=url.toUpperCase();show('studentLogin')}
+})();
+</script>
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import{getAuth,signInAnonymously,signInWithEmailAndPassword,signOut}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
