@@ -1,0 +1,22 @@
+// Etapa 2 — RETO UNIVERSITARIO / Charlas y Cursos
+// IMPORTANTE: Este bloque debe incorporarse DENTRO de
+// match /databases/{database}/documents { ... }
+// en las reglas EXISTENTES. NO reemplazar las reglas de rooms,
+// participants ni responses utilizadas por Portal del Estudiante.
+//
+// El administrador es el titular de UID indicado abajo.
+// Los correos autorizados se guardan en teacherInvites/{emailMinusculas}.
+match /teacherInvites/{teacherEmail} {
+  allow get: if request.auth != null && (
+    request.auth.uid == 'xok3lxvoHGQte2zOIaYM81XCHZi2' ||
+    (request.auth.token.email_verified == true &&
+     request.auth.token.email == teacherEmail)
+  );
+  allow list: if false;
+  allow create, update, delete: if request.auth != null &&
+    request.auth.uid == 'xok3lxvoHGQte2zOIaYM81XCHZi2';
+}
+// Los permisos para charlas compartidas, sesiones y resultados
+// se definirán después con ownership y validación de activo.
+// ATENCIÓN: Actualmente los borradores se almacenan en localStorage,
+// por lo que este fragmento NO restringe su edición local.
