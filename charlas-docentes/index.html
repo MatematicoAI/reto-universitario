@@ -119,7 +119,7 @@ onAuthStateChanged(auth,async user=>{
  $('signedUser').textContent=user?'Cuenta: '+(user.email||'sin correo'):'';
  message('authStatus',await checkAccess(user));
 });
-$('signIn').onclick=async()=>{try{const email=$('authEmail').value.trim().toLowerCase(),password=$('authPassword').value;if(!institutional(email))throw Error('Use su correo institucional @cientifica.edu.pe.');await signInWithEmailAndPassword(auth,email,password)}catch(e){message('authStatus','No fue posible ingresar: '+e.message)}};
+$('signIn').onclick=async()=>{try{const email=$('authEmail').value.trim().toLowerCase(),password=$('authPassword').value;await signInWithEmailAndPassword(auth,email,password)}catch(e){message('authStatus','No fue posible ingresar: '+e.message)}};
 $('signUp').onclick=async()=>{try{const email=$('authEmail').value.trim().toLowerCase(),password=$('authPassword').value;if(!institutional(email))throw Error('Solo se aceptan correos @cientifica.edu.pe.');if(password.length<8)throw Error('La contraseña debe tener al menos 8 caracteres.');const result=await createUserWithEmailAndPassword(auth,email,password);await sendEmailVerification(result.user);message('authStatus','Se envió un correo de verificación. Su acceso dependerá de que el administrador haya autorizado el correo.')}catch(e){message('authStatus','No se pudo crear la cuenta: '+e.message)}};
 $('verifyAgain').onclick=async()=>{try{if(!auth.currentUser)throw Error('Primero ingrese.');await reload(auth.currentUser);message('authStatus',await checkAccess(auth.currentUser))}catch(e){message('authStatus',e.message)}};
 $('signOut').onclick=async()=>{await signOut(auth)};
