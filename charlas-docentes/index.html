@@ -11,7 +11,7 @@
 <div id="authPanel"><label for="authEmail">Correo del docente</label><input type="email" id="authEmail" autocomplete="email" placeholder="docente@cientifica.edu.pe">
 <label for="authPassword">Contraseña personal (mínimo 8 caracteres)</label><input type="password" id="authPassword" autocomplete="current-password" minlength="8">
 <button id="signIn">Ingresar</button><button id="signUp" class="secondary">Crear cuenta con autorización previa</button><button id="verifyAgain" class="secondary">Revisar verificación de correo</button><p class="muted">Solo se permiten correos @cientifica.edu.pe. El docente debe estar autorizado por el Administrador General y verificar su correo. Las contraseñas se gestionan en Firebase Authentication; no se guardan en este sitio.</p></div>
-<div id="signedPanel" hidden><p id="signedUser"></p><button id="signOut">Cerrar sesión</button></div>
+<div id="signedPanel" hidden><p id="signedUser"></p><button id="resendVerification" class="secondary" type="button" hidden>📨 Reenviar correo de verificación</button><button id="checkVerification" class="secondary" type="button" hidden>✓ Ya verifiqué mi correo</button><button id="signOut">Cerrar sesión</button></div>
 <p id="authStatus" role="status"></p>
 
 </section><div id="teacherWorkspace" hidden><section class="card"><h2>🗂️ Mis charlas — preparar borrador</h2><p>Complete los datos de su actividad, cargue las preguntas y guarde un borrador en este navegador. <strong>Los borradores se guardan localmente por cuenta autorizada en este navegador; no se sincronizan entre dispositivos ni con Firebase.</strong></p>
@@ -152,6 +152,8 @@ onAuthStateChanged(auth,async user=>{
  $('authStatus').textContent='Comprobando autorización…';
  $('authPanel').hidden=!!user;$('signedPanel').hidden=!user;$('adminPanel').hidden=!(user&&user.uid===ADMIN);$('adminLogin').hidden=!!(user&&user.uid===ADMIN);
  $('signedUser').textContent=user?'Cuenta: '+(user.email||'sin correo'):'';
+ $('resendVerification').hidden=!user||user.emailVerified||!institutional(user.email);
+ $('checkVerification').hidden=!user||user.emailVerified||!institutional(user.email);
  const status=await checkAccess(user);
  if(serial!==authCheckSerial)return;
  const allowed=!!user&&(user.uid===ADMIN||(institutional(user.email)&&user.emailVerified&&status==='Docente autorizado. Puede preparar su charla.'));
@@ -160,6 +162,8 @@ onAuthStateChanged(auth,async user=>{
  message('authStatus',status);
  if(allowed){$('newDraft').click();}
 });
+$('resendVerification').onclick=async()=>{try{const user=auth.currentUser;if(!user||!institutional(user.email))throw Error('Ingrese con su correo institucional.');await reload(user);if(user.emailVerified){message('authStatus','Su correo ya está verificado. Pulse Ya verifiqué mi correo.');return}await sendEmailVerification(user);message('authStatus','✅ Enviamos un nuevo enlace de verificación a '+user.email+'. Revise Recibidos, Correo no deseado y Spam.');}catch(e){message('authStatus','No se pudo reenviar el correo: '+e.message)}};
+$('checkVerification').onclick=async()=>{try{const user=auth.currentUser;if(!user)throw Error('Primero ingrese.');await reload(user);await user.getIdToken(true);const status=await checkAccess(user);const allowed=user.uid===ADMIN||(institutional(user.email)&&user.emailVerified&&status==='Docente autorizado. Puede preparar su charla.');window.retoAuthorizedUid=allowed?user.uid:null;$('teacherWorkspace').hidden=!allowed;$('resendVerification').hidden=user.emailVerified;$('checkVerification').hidden=user.emailVerified;message('authStatus',status);if(allowed)$('newDraft').click();}catch(e){message('authStatus','No se pudo comprobar la verificación: '+e.message)}};
 $('adminSignIn').onclick=async()=>{try{const email=$('adminEmail').value.trim().toLowerCase(),password=$('adminPassword').value;const result=await signInWithEmailAndPassword(auth,email,password);if(result.user.uid!==ADMIN){await signOut(auth);throw Error('Esta cuenta no es Administrador General.')}message('adminLoginStatus','Acceso administrativo verificado.')}catch(e){message('adminLoginStatus','No fue posible ingresar: '+e.message)}};
 $('signIn').onclick=async()=>{try{const email=$('authEmail').value.trim().toLowerCase(),password=$('authPassword').value;await signInWithEmailAndPassword(auth,email,password)}catch(e){message('authStatus','No fue posible ingresar: '+e.message)}};
 $('signUp').onclick=async()=>{try{const email=$('authEmail').value.trim().toLowerCase(),password=$('authPassword').value;if(!institutional(email))throw Error('Solo se aceptan correos @cientifica.edu.pe.');if(password.length<8)throw Error('La contraseña debe tener al menos 8 caracteres.');const result=await createUserWithEmailAndPassword(auth,email,password);await sendEmailVerification(result.user);message('authStatus','Se envió un correo de verificación. Su acceso dependerá de que el administrador haya autorizado el correo.')}catch(e){message('authStatus','No se pudo crear la cuenta: '+e.message)}};
