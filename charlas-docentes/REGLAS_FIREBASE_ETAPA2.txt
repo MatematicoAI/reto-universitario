@@ -10,7 +10,36 @@ match /teacherInvites/{teacherEmail} {
   allow get: if request.auth != null && (
     request.auth.uid == 'xok3lxvoHGQte2zOIaYM81XCHZi2' ||
     (request.auth.token.email_verified == true &&
-     request.auth.token.email == teacherEmail)
+     request.auth.token.email == teacherEmail &&
+     teacherEmail.matches('^[^@]+@cientifica\\.edu\\.pe)
+  );
+  allow list: if false;
+  allow create, update, delete: if request.auth != null &&
+    request.auth.uid == 'xok3lxvoHGQte2zOIaYM81XCHZi2' &&
+    teacherEmail.matches('^[^@]+@cientifica\\.edu\\.pe
+}
+// Los permisos para charlas compartidas, sesiones y resultados
+// se definirán después con ownership y validación de activo.
+// ATENCIÓN: Actualmente los borradores se almacenan en localStorage,
+// por lo que este fragmento NO restringe su edición local.
+))
+  );
+  allow list: if false;
+  allow create, update, delete: if request.auth != null &&
+    request.auth.uid == 'xok3lxvoHGQte2zOIaYM81XCHZi2';
+}
+// Los permisos para charlas compartidas, sesiones y resultados
+// se definirán después con ownership y validación de activo.
+// ATENCIÓN: Actualmente los borradores se almacenan en localStorage,
+// por lo que este fragmento NO restringe su edición local.
+) &&
+    (request.method == 'delete' || (request.resource.data.email == teacherEmail && request.resource.data.active is bool));
+}
+// Los permisos para charlas compartidas, sesiones y resultados
+// se definirán después con ownership y validación de activo.
+// ATENCIÓN: Actualmente los borradores se almacenan en localStorage,
+// por lo que este fragmento NO restringe su edición local.
+))
   );
   allow list: if false;
   allow create, update, delete: if request.auth != null &&
