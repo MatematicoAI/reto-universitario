@@ -186,8 +186,11 @@ $('teachersFile').onchange=async e=>{
    const names=(r[ni]||'').trim(),surnames=(r[ai]||'').trim(),email=(r[ci]||'').trim().toLowerCase();
    const issues=[];
    if(!names||!surnames)issues.push('Falta nombres o apellidos');
-   if(!institutional(email))issues.push('Correo no es @cientifica.edu.pe');
-   if(seen.has(email))issues.push('Correo repetido');seen.add(email);
+   if(!email){issues.push('Falta correo en columna Correo');if(institutional(surnames))issues.push('Parece que escribió el correo en Apellidos');}
+   else if(!institutional(email))issues.push('Correo no es @cientifica.edu.pe');
+   if(email&&seen.has(email))issues.push('Correo repetido');
+   if(email)seen.add(email);
+   if(institutional(surnames)||institutional(names))issues.push('El correo debe estar exclusivamente en la columna Correo');
    if(names.length+surnames.length>119)issues.push('Nombre demasiado largo');
    if(issues.length)problems.push('Fila '+(i+2)+': '+issues.join(', '));else pendingTeachers.push({email,name:names+' '+surnames});
    const tr=document.createElement('tr');[i+1,names+' '+surnames,email,issues.length?issues.join('; '):'✓ Válido'].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.append(td)});body.append(tr);
