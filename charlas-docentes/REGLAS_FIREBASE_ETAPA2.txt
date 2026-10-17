@@ -4,7 +4,7 @@
 match /teacherInvites/{teacherEmail} {
   function isAdmin() {
     return request.auth != null &&
-      request.auth.uid == 'xok3lxvoHGQte2zOIaYM81XCHZi2';
+      request.auth.uid == 'cypIxKkYtFhzYn7MYp5boB0OEJ62';
   }
   function isInstitutional() {
     return teacherEmail.matches('^[^@]+@cientifica[.]edu[.]pe$');
