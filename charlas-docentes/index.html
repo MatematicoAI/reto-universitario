@@ -8,9 +8,9 @@
 <button class="role" data-role="admin"><span>🛡️</span><strong>Soy administrador</strong><small>Autorizar y gestionar docentes</small></button></div></section>
 <section id="studentModule" class="card role-module" hidden><button class="secondary goHome">← Volver</button><h2>🎓 Soy estudiante</h2><p class="notice">El acceso de estudiantes para esta segunda aplicación se activará cuando estén listas las sesiones independientes y las reglas de seguridad de Firebase.</p><label for="studentSession">Código de sesión</label><input id="studentSession" maxlength="6" placeholder="Código proporcionado por el docente" disabled><button disabled>Ingresar a la charla (próximamente)</button><p>Esta aplicación todavía permite preparar charlas; no inicia sesiones reales.</p></section>
 <div id="teacherModule" class="role-module" hidden><section class="card" id="access"><h2>🔐 Acceso y autorización docente</h2><p class="notice">El acceso a las herramientas docentes requiere una cuenta institucional autorizada y correo electrónico verificado.</p>
-<div id="authPanel"><label for="authEmail">Correo del docente</label><input type="email" id="authEmail" autocomplete="email" placeholder="docente@cientifica.edu.pe">
-<label for="authPassword">Contraseña personal (mínimo 8 caracteres)</label><input type="password" id="authPassword" autocomplete="current-password" minlength="8">
-<button id="signIn">Ingresar</button><button id="signUp" class="secondary">Crear cuenta con autorización previa</button><button id="verifyAgain" class="secondary">Revisar verificación de correo</button><p class="muted">Solo se permiten correos @cientifica.edu.pe. El docente debe estar autorizado por el Administrador General y verificar su correo. Las contraseñas se gestionan en Firebase Authentication; no se guardan en este sitio.</p></div>
+<div id="authPanel"><label for="authEmail">Correo institucional del docente</label><input type="email" id="authEmail" autocomplete="email" placeholder="docente@cientifica.edu.pe">
+<button id="emailLinkSignIn" type="button">📩 Recibir enlace para ingresar sin contraseña</button>
+<p class="muted">Solo docentes autorizados. El enlace enviado al correo permite verificar su dirección e ingresar sin contraseña.</p></div>
 <div id="signedPanel" hidden><p id="signedUser"></p><button id="resendVerification" class="secondary" type="button" hidden>📨 Reenviar correo de verificación</button><button id="checkVerification" class="secondary" type="button" hidden>✓ Ya verifiqué mi correo</button><button id="signOut">Cerrar sesión</button></div>
 <p id="authStatus" role="status"></p>
 
@@ -127,7 +127,7 @@ refreshDrafts();
 </script><script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js" defer></script>
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import{getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendEmailVerification,signOut,onAuthStateChanged,reload}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import{getAuth,signInWithEmailAndPassword,sendEmailVerification,sendSignInLinkToEmail,isSignInWithEmailLink,signInWithEmailLink,signOut,onAuthStateChanged,reload}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import{getFirestore,doc,getDoc,setDoc}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 const firebaseConfig={apiKey:"AIzaSyA5f80f1MwhxzNH0EKex6WdNKEF_Nhz_vI",authDomain:"reto-charlas-cursos.firebaseapp.com",projectId:"reto-charlas-cursos",storageBucket:"reto-charlas-cursos.firebasestorage.app",messagingSenderId:"601004796781",appId:"1:601004796781:web:1def757137e5a84badc864"};
 const ADMIN="yO5FdJ9WiBXBNkhRqKRuOlt3VQo1";
@@ -136,7 +136,7 @@ const $=id=>document.getElementById(id);
 const message=(id,str)=>$(id).textContent=str;
 const institutional=email=>/^[^\s@]+@cientifica\.edu\.pe$/i.test(email||'');
 async function checkAccess(user){
- if(!user)return 'Sin sesión. Puede seguir trabajando en borradores locales.';
+ if(!user)return 'Ingrese su correo institucional para solicitar un enlace de acceso.';
  if(user.uid===ADMIN)return 'Administrador General autorizado.';
  if(!institutional(user.email))return 'Acceso docente restringido a correos @cientifica.edu.pe.';
  if(!user.emailVerified)return 'Revise su correo y verifique la dirección antes de utilizar su acceso.';
@@ -165,9 +165,32 @@ onAuthStateChanged(auth,async user=>{
 $('resendVerification').onclick=async()=>{try{const user=auth.currentUser;if(!user||!institutional(user.email))throw Error('Ingrese con su correo institucional.');await reload(user);if(user.emailVerified){message('authStatus','Su correo ya está verificado. Pulse Ya verifiqué mi correo.');return}await sendEmailVerification(user);message('authStatus','✅ Enviamos un nuevo enlace de verificación a '+user.email+'. Revise Recibidos, Correo no deseado y Spam.');}catch(e){message('authStatus','No se pudo reenviar el correo: '+e.message)}};
 $('checkVerification').onclick=async()=>{try{const user=auth.currentUser;if(!user)throw Error('Primero ingrese.');await reload(user);await user.getIdToken(true);const status=await checkAccess(user);const allowed=user.uid===ADMIN||(institutional(user.email)&&user.emailVerified&&status==='Docente autorizado. Puede preparar su charla.');window.retoAuthorizedUid=allowed?user.uid:null;$('teacherWorkspace').hidden=!allowed;$('resendVerification').hidden=user.emailVerified;$('checkVerification').hidden=user.emailVerified;message('authStatus',status);if(allowed)$('newDraft').click();}catch(e){message('authStatus','No se pudo comprobar la verificación: '+e.message)}};
 $('adminSignIn').onclick=async()=>{try{const email=$('adminEmail').value.trim().toLowerCase(),password=$('adminPassword').value;const result=await signInWithEmailAndPassword(auth,email,password);if(result.user.uid!==ADMIN){await signOut(auth);throw Error('Esta cuenta no es Administrador General.')}message('adminLoginStatus','Acceso administrativo verificado.')}catch(e){message('adminLoginStatus','No fue posible ingresar: '+e.message)}};
-$('signIn').onclick=async()=>{try{const email=$('authEmail').value.trim().toLowerCase(),password=$('authPassword').value;await signInWithEmailAndPassword(auth,email,password)}catch(e){message('authStatus','No fue posible ingresar: '+e.message)}};
-$('signUp').onclick=async()=>{try{const email=$('authEmail').value.trim().toLowerCase(),password=$('authPassword').value;if(!institutional(email))throw Error('Solo se aceptan correos @cientifica.edu.pe.');if(password.length<8)throw Error('La contraseña debe tener al menos 8 caracteres.');const result=await createUserWithEmailAndPassword(auth,email,password);await sendEmailVerification(result.user);message('authStatus','Se envió un correo de verificación. Su acceso dependerá de que el administrador haya autorizado el correo.')}catch(e){message('authStatus','No se pudo crear la cuenta: '+e.message)}};
-$('verifyAgain').onclick=async()=>{try{if(!auth.currentUser)throw Error('Primero ingrese.');await reload(auth.currentUser);await auth.currentUser.getIdToken(true);$('signedPanel').hidden=false;const status=await checkAccess(auth.currentUser);const allowed=auth.currentUser.uid===ADMIN||(institutional(auth.currentUser.email)&&auth.currentUser.emailVerified&&status==='Docente autorizado. Puede preparar su charla.');window.retoAuthorizedUid=allowed?auth.currentUser.uid:null;$('teacherWorkspace').hidden=!allowed;message('authStatus',status);if(allowed)$('newDraft').click()}catch(e){message('authStatus',e.message)}};
+const EMAIL_LINK_KEY='reto_charlas_pending_email';
+$('emailLinkSignIn').onclick=async()=>{
+ const email=$('authEmail').value.trim().toLowerCase();
+ if(!institutional(email)){message('authStatus','Ingrese un correo @cientifica.edu.pe válido.');return}
+ $('emailLinkSignIn').disabled=true;
+ try{
+  await sendSignInLinkToEmail(auth,email,{url:'https://matematicoai.github.io/reto-universitario/charlas-docentes/',handleCodeInApp:true});
+  localStorage.setItem(EMAIL_LINK_KEY,email);
+  message('authStatus','✅ Se solicitó un enlace de acceso a '+email+'. Revise su bandeja de entrada y spam.');
+ }catch(e){message('authStatus','No se pudo enviar el enlace: '+e.message+'. Confirme que Email Link esté habilitado en Firebase y que el dominio esté autorizado.')}
+ finally{$('emailLinkSignIn').disabled=false}
+};
+async function finishEmailLink(){
+ if(!isSignInWithEmailLink(auth,window.location.href))return;
+ let email=localStorage.getItem(EMAIL_LINK_KEY)||'';
+ if(!email)email=prompt('Escriba el correo institucional al que llegó el enlace:')?.trim().toLowerCase()||'';
+ if(!institutional(email)){message('authStatus','Ingrese el correo institucional destinatario para finalizar.');return}
+ try{
+  const result=await signInWithEmailLink(auth,email,window.location.href);
+  if(!institutional(result.user.email)){await signOut(auth);throw Error('El correo no es institucional.')}
+  localStorage.removeItem(EMAIL_LINK_KEY);
+  history.replaceState(null,'',window.location.pathname);
+  message('authStatus','Enlace confirmado. Comprobando su autorización...');
+ }catch(e){message('authStatus','No se pudo completar el ingreso: '+e.message)}
+}
+finishEmailLink();
 $('signOut').onclick=async()=>{await signOut(auth)};
 async function setInvite(active){const user=auth.currentUser;if(!user||user.uid!==ADMIN){message('adminStatus','Solo el Administrador General puede autorizar.');return}const email=$('inviteEmail').value.trim().toLowerCase(),name=$('inviteName').value.trim();if(!institutional(email)){message('adminStatus','Solo puede autorizar correos @cientifica.edu.pe.');return}try{await setDoc(doc(db,'teacherInvites',email),{email,name,active,updatedBy:user.uid,updatedAt:Date.now()});message('adminStatus',active?'✅ Docente autorizado: '+email:'Acceso suspendido: '+email)}catch(e){message('adminStatus','No se pudo actualizar autorización. Verifique las reglas Firestore: '+e.message)}}
 $('authorize').onclick=()=>setInvite(true);
