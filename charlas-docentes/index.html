@@ -32,7 +32,15 @@
 <div id="adminPanel" hidden><h3>🛡️ Panel de Administrador General</h3><p>Registre primero el correo de cada docente para autorizar su ingreso. También puede suspender su acceso.</p>
 <label for="inviteEmail">Correo a autorizar</label><input id="inviteEmail" type="email" placeholder="docente@cientifica.edu.pe">
 <label for="inviteName">Nombre y apellidos</label><input id="inviteName" maxlength="120" placeholder="Nombres completos">
-<button id="authorize">Autorizar docente</button><button id="suspend" class="secondary">Suspender docente</button><p id="adminStatus" role="status"></p><p class="muted">El docente tendrá que crear su contraseña y verificar su correo desde su propio dispositivo.</p></div>
+<button id="authorize">Autorizar docente</button><button id="suspend" class="secondary">Suspender docente</button><p id="adminStatus" role="status"></p><p class="muted">El docente tendrá que crear su contraseña y verificar su correo desde su propio dispositivo.</p>
+<hr><h3>📥 Carga masiva de docentes (hasta 20 por lote)</h3>
+<p>1. Descargue la plantilla. 2. Escriba nombres, apellidos y correo institucional de cada docente. 3. Guarde en CSV UTF-8. 4. Cargue, revise los datos y confirme la autorización.</p>
+<button id="downloadTeachers" type="button" class="secondary">⬇ Descargar plantilla de 20 docentes (CSV)</button>
+<label for="teachersFile">Cargar relación de docentes (CSV)</label><input id="teachersFile" type="file" accept=".csv,text/csv">
+<p id="teachersValidation" role="status">No se ha cargado una lista.</p>
+<div class="scroll"><table><thead><tr><th>N.º</th><th>Nombres y apellidos</th><th>Correo institucional</th><th>Validación</th></tr></thead><tbody id="teachersPreview"><tr><td colspan="4">Seleccione una plantilla completada.</td></tr></tbody></table></div>
+<button id="bulkAuthorize" type="button" disabled>✅ Confirmar y autorizar docentes válidos</button>
+<p id="bulkStatus" role="status"></p></div>
 </section></main>
 <footer>RETO UNIVERSITARIO · Charlas y Cursos · Preparación de actividades</footer>
 <script>
@@ -149,4 +157,55 @@ $('signOut').onclick=async()=>{await signOut(auth)};
 async function setInvite(active){const user=auth.currentUser;if(!user||user.uid!==ADMIN){message('adminStatus','Solo el Administrador General puede autorizar.');return}const email=$('inviteEmail').value.trim().toLowerCase(),name=$('inviteName').value.trim();if(!institutional(email)){message('adminStatus','Solo puede autorizar correos @cientifica.edu.pe.');return}try{await setDoc(doc(db,'teacherInvites',email),{email,name,active,updatedBy:user.uid,updatedAt:Date.now()});message('adminStatus',active?'✅ Docente autorizado: '+email:'Acceso suspendido: '+email)}catch(e){message('adminStatus','No se pudo actualizar autorización. Verifique las reglas Firestore: '+e.message)}}
 $('authorize').onclick=()=>setInvite(true);
 $('suspend').onclick=()=>setInvite(false);
+
+let pendingTeachers=[];
+$('downloadTeachers').onclick=()=>{
+ const body=['Nombres;Apellidos;Correo'];
+ for(let i=1;i<=20;i++)body.push(';;');
+ const blob=new Blob(['\uFEFF'+body.join('\r\n')],{type:'text/csv;charset=utf-8'});
+ const a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;a.download='Plantilla_20_Docentes_Reto_Universitario.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+$('teachersFile').onchange=async e=>{
+ pendingTeachers=[];$('bulkAuthorize').disabled=true;const file=e.target.files[0];if(!file)return;
+ const body=$('teachersPreview');body.replaceChildren();
+ try{
+  if(file.size>200000)throw Error('El archivo supera 200 KB.');
+  if(!file.name.toLowerCase().endsWith('.csv'))throw Error('Guarde la plantilla en CSV UTF-8.');
+  const raw=(await file.text()).replace(/^\uFEFF/,'');
+  const firstLine=raw.split(/\r?\n/)[0]||'';
+  const delimiter=firstLine.includes(';')?';':',';
+  const rows=[];let field='',row=[],quoted=false;
+  for(let i=0;i<raw.length;i++){const c=raw[i];if(quoted){if(c==='"'&&raw[i+1]==='"'){field+='"';i++}else if(c==='"')quoted=false;else field+=c}else if(c==='"')quoted=true;else if(c===delimiter){row.push(field.trim());field=''}else if(c==='\n'){row.push(field.trim());rows.push(row);row=[];field=''}else if(c!=='\r')field+=c}
+  row.push(field.trim());rows.push(row);
+  const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+  const cols=rows.shift().map(norm),ni=cols.indexOf('nombres'),ai=cols.indexOf('apellidos'),ci=cols.indexOf('correo');
+  if([ni,ai,ci].some(i=>i<0))throw Error('Los encabezados deben ser Nombres, Apellidos y Correo.');
+  const seen=new Set(),problems=[];let filled=0;
+  rows.forEach((r,i)=>{
+   if(r.every(v=>!String(v).trim()))return;filled++;
+   const names=(r[ni]||'').trim(),surnames=(r[ai]||'').trim(),email=(r[ci]||'').trim().toLowerCase();
+   const issues=[];
+   if(!names||!surnames)issues.push('Falta nombres o apellidos');
+   if(!institutional(email))issues.push('Correo no es @cientifica.edu.pe');
+   if(seen.has(email))issues.push('Correo repetido');seen.add(email);
+   if(names.length+surnames.length>119)issues.push('Nombre demasiado largo');
+   if(issues.length)problems.push('Fila '+(i+2)+': '+issues.join(', '));else pendingTeachers.push({email,name:names+' '+surnames});
+   const tr=document.createElement('tr');[i+1,names+' '+surnames,email,issues.length?issues.join('; '):'✓ Válido'].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.append(td)});body.append(tr);
+  });
+  if(filled>20)problems.push('Máximo 20 docentes por carga.');
+  if(!filled)problems.push('La plantilla está vacía.');
+  if(problems.length){pendingTeachers=[];$('teachersValidation').textContent='❌ Revise: '+problems.slice(0,10).join(' | ')}
+  else{$('teachersValidation').textContent='✅ '+pendingTeachers.length+' docentes listos para autorizar. Revise los nombres y correos antes de confirmar.';$('bulkAuthorize').disabled=false}
+ }catch(err){pendingTeachers=[];$('teachersValidation').textContent='❌ '+err.message}
+};
+$('bulkAuthorize').onclick=async()=>{
+ const user=auth.currentUser;
+ if(!user||user.uid!==ADMIN){message('bulkStatus','Solo el Administrador General puede autorizar.');return}
+ if(!pendingTeachers.length){message('bulkStatus','Primero cargue y valide la plantilla.');return}
+ if(!confirm('¿Autorizar '+pendingTeachers.length+' docentes institucionales?'))return;
+ $('bulkAuthorize').disabled=true;let saved=0;const errors=[];
+ for(const t of pendingTeachers){try{await setDoc(doc(db,'teacherInvites',t.email),{email:t.email,name:t.name,active:true,updatedBy:user.uid,updatedAt:Date.now()});saved++}catch(err){errors.push(t.email+': '+err.message)}}
+ message('bulkStatus',saved+' de '+pendingTeachers.length+' autorizaciones guardadas en Firebase.'+(errors.length?' Fallaron: '+errors.slice(0,5).join(' | '):' ✅ Listo.'));
+ if(errors.length===0)pendingTeachers=[];else $('bulkAuthorize').disabled=false;
+};
 </script></body></html>
