@@ -24,7 +24,7 @@
 <section class="card"><h2>📝 Previsualización de preguntas</h2><div class="scroll"><table><thead><tr><th>N.º</th><th>Pregunta</th><th>Alternativas</th><th>Correcta</th><th>Imagen</th></tr></thead><tbody id="preview"><tr><td colspan="4">Cargue su CSV para revisar las preguntas.</td></tr></tbody></table></div></section>
 <section class="card"><h2>🔐 Próximas funciones para varios docentes</h2><p>El Administrador General podrá registrar y autorizar docentes. Cada docente tendrá sus propias charlas, preguntas, imágenes, sesiones y resultados. Se implementarán y probarán los permisos antes de habilitar sesiones reales.</p><a class="button" href="../">Volver a la charla del Portal del Estudiante</a></section></div></div>
 <section id="adminModule" class="card role-module" hidden><button class="secondary goHome">← Volver</button><h2>🛡️ Soy administrador</h2>
-<p class="notice">Este módulo es exclusivo del Administrador General. Los permisos se habilitarán cuando las reglas de Firebase estén publicadas.</p>
+<p class="notice">Acceso exclusivo del Administrador General. Ingrese con la cuenta Gmail administradora registrada en Firebase.</p>
 <div id="adminLogin"><label for="adminEmail">Correo de administrador</label><input type="email" id="adminEmail" autocomplete="username" placeholder="Correo de su cuenta administradora">
 <label for="adminPassword">Contraseña</label><input type="password" id="adminPassword" autocomplete="current-password">
 <button id="adminSignIn">Ingresar como administrador</button></div>
@@ -130,7 +130,7 @@ import{initializeApp}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-ap
 import{getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendEmailVerification,signOut,onAuthStateChanged,reload}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import{getFirestore,doc,getDoc,setDoc}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 const firebaseConfig={apiKey:"AIzaSyA5f80f1MwhxzNH0EKex6WdNKEF_Nhz_vI",authDomain:"reto-charlas-cursos.firebaseapp.com",projectId:"reto-charlas-cursos",storageBucket:"reto-charlas-cursos.firebasestorage.app",messagingSenderId:"601004796781",appId:"1:601004796781:web:1def757137e5a84badc864"};
-const ADMIN="cypIxKkYtFhzYn7MYp5boB0OEJ62";
+const ADMIN="yO5FdJ9WiBXBNkhRqKRuOlt3VQo1";
 const auth=getAuth(initializeApp(firebaseConfig)),db=getFirestore();
 const $=id=>document.getElementById(id);
 const message=(id,str)=>$(id).textContent=str;
