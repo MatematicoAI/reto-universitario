@@ -7,8 +7,8 @@
 <label for="talkAuthor">Docente</label><input id="talkAuthor" maxlength="100" placeholder="Nombre y apellidos">
 <div class="actions"><button id="saveDraft">💾 Guardar borrador</button><button id="newDraft" class="secondary">＋ Nueva charla</button><button id="exportDraft" class="secondary">⬇ Respaldar borrador JSON</button></div>
 <label for="savedDrafts">Abrir una charla guardada en este navegador</label><select id="savedDrafts"><option value="">Seleccione un borrador</option></select><button id="loadDraft" class="secondary">Abrir borrador</button><button id="deleteDraft" class="secondary">Eliminar borrador seleccionado</button><p id="draftStatus" role="status"></p></section>
-<section class="card"><h2>📘 Preparación docente</h2><p class="notice"><strong>Etapa de preparación:</strong> aquí puede descargar una plantilla, importar preguntas, revisar errores y preparar borradores. El acceso multiusuario, las imágenes en línea y las sesiones con estudiantes todavía no están activados; no utilice este sitio para realizar una charla en vivo.</p><div class="steps"><div class="step"><b>1 · Descargue la plantilla</b>Use una fila por pregunta. Complete enunciado, cuatro alternativas y respuesta.</div><div class="step"><b>2 · Llene y guarde</b>Guarde el archivo como CSV UTF-8. Si trabaja con Excel, use «Guardar como CSV UTF-8».</div><div class="step"><b>3 · Cargue el archivo</b>La aplicación revisará las preguntas y le indicará qué filas corregir.</div><div class="step"><b>4 · Revise su borrador</b>Puede consultar los resultados de la importación antes de usar las preguntas.</div></div><button id="template">⬇ Descargar plantilla CSV</button><label for="file">Seleccione su archivo CSV de preguntas</label><input id="file" type="file" accept=".csv,text/csv"><p id="status" role="status">Todavía no se ha cargado un archivo.</p></section>
-<section class="card"><h2>📝 Previsualización de preguntas</h2><div class="scroll"><table><thead><tr><th>N.º</th><th>Pregunta</th><th>Alternativas</th><th>Correcta</th></tr></thead><tbody id="preview"><tr><td colspan="4">Cargue su CSV para revisar las preguntas.</td></tr></tbody></table></div></section>
+<section class="card"><h2>📘 Preparación docente</h2><p class="notice"><strong>Etapa de preparación:</strong> aquí puede descargar una plantilla, importar preguntas, revisar errores y preparar borradores. El acceso multiusuario, las sesiones con estudiantes todavía no están activadas; no utilice este sitio para realizar una charla en vivo.</p><div class="steps"><div class="step"><b>1 · Descargue la plantilla</b>Use una fila por pregunta. Complete enunciado, cuatro alternativas y respuesta.</div><div class="step"><b>2 · Llene y guarde</b>Guarde como CSV UTF-8. Si utiliza imágenes, coloque el CSV y las imágenes JPG/PNG/WebP dentro de un ZIP y escriba cada nombre en la columna Imagen.</div><div class="step"><b>3 · Cargue el archivo</b>Cargue CSV para preguntas sin imágenes, o ZIP si incluye imágenes; se mostrarán los errores.</div><div class="step"><b>4 · Revise su borrador</b>Puede consultar los resultados de la importación antes de usar las preguntas.</div></div><button id="template">⬇ Descargar plantilla CSV</button><label for="file">Seleccione un CSV o un ZIP con CSV e imágenes</label><input id="file" type="file" accept=".csv,.zip"><p class="muted">ZIP: un solo archivo preguntas.csv y las imágenes en la misma carpeta, sin subcarpetas. Máximo 12 MB el ZIP y 1 MB por imagen.</p><p id="status" role="status">Todavía no se ha cargado un archivo.</p></section>
+<section class="card"><h2>📝 Previsualización de preguntas</h2><div class="scroll"><table><thead><tr><th>N.º</th><th>Pregunta</th><th>Alternativas</th><th>Correcta</th><th>Imagen</th></tr></thead><tbody id="preview"><tr><td colspan="4">Cargue su CSV para revisar las preguntas.</td></tr></tbody></table></div></section>
 <section class="card"><h2>🔐 Próximas funciones para varios docentes</h2><p>El Administrador General podrá registrar y autorizar docentes. Cada docente tendrá sus propias charlas, preguntas, imágenes, sesiones y resultados. Se implementarán y probarán los permisos antes de habilitar sesiones reales.</p><a class="button" href="../">Volver a la charla del Portal del Estudiante</a></section></main>
 <footer>RETO UNIVERSITARIO · Charlas y Cursos · Preparación de actividades</footer>
 <script>
@@ -16,17 +16,72 @@ const $=id=>document.getElementById(id);let importedQuestions=[];
 function download(name,body){const b=new Blob(['\ufeff'+body],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');const u=URL.createObjectURL(b);a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 $('template').onclick=()=>download('Plantilla_Reto_Universitario.csv','Numero;Pregunta;A;B;C;D;Correcta;Imagen\r\n1;¿Qué estudia la biología?;La vida;Los planetas;Los números;Los idiomas;A;\r\n2;¿Qué representa H2O?;Oxígeno;Agua;Carbono;Hierro;B;agua.png');
 function parseCSV(text){const first=text.replace(/^\uFEFF/,'').trim();const line=first.split(/\r?\n/)[0]||'';const sep=(line.match(/;/g)||[]).length>=(line.match(/,/g)||[]).length?';':',';const rows=[];let row=[],cell='',quoted=false;for(let i=0;i<first.length;i++){const c=first[i];if(quoted){if(c==='"'&&first[i+1]==='"'){cell+='"';i++}else if(c==='"')quoted=false;else cell+=c}else if(c==='"')quoted=true;else if(c===sep){row.push(cell.trim());cell=''}else if(c==='\n'){row.push(cell.trim());rows.push(row);row=[];cell=''}else if(c!=='\r')cell+=c}row.push(cell.trim());rows.push(row);return rows}
-$('file').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>2_000_000)throw Error('El CSV supera 2 MB. Divídalo en archivos más pequeños.');const rows=parseCSV(await file.text());const expected=['numero','pregunta','a','b','c','d','correcta','imagen'];const head=rows.shift().map(x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase());const ids=expected.map(x=>head.indexOf(x));if(ids.slice(0,7).some(x=>x<0))throw Error('Faltan encabezados. Descargue la plantilla de esta página y mantenga sus nombres de columnas.');const errors=[],valid=[];rows.forEach((r,i)=>{if(r.every(x=>!x))return;const pick=j=>ids[j]<0?'':String(r[ids[j]]||'').trim();const q=pick(1),options=[pick(2),pick(3),pick(4),pick(5)],answer=pick(6).toUpperCase();if(!q||options.some(x=>!x)||!['A','B','C','D'].includes(answer)){errors.push('Fila '+(i+2)+': complete la pregunta, las cuatro alternativas y la respuesta A, B, C o D.');return}valid.push({q,options,answer,img:pick(7)})});const dest=$('preview');dest.replaceChildren();importedQuestions=valid;valid.forEach((q,i)=>{const tr=document.createElement('tr');for(const item of [i+1,q.q,q.options.map((x,k)=>'ABCD'[k]+': '+x).join(' · '),q.answer]){const td=document.createElement('td');td.textContent=item;tr.append(td)}dest.append(tr)});$('status').textContent=valid.length+' preguntas válidas. '+(errors.length?errors.length+' con errores: '+errors.slice(0,8).join(' '):'Sin errores de formato.')+' Las imágenes indicadas por nombre todavía no se suben.'}catch(err){$('status').textContent='No se pudo revisar el archivo: '+err.message}};
+
+async function importZip(file){
+ if(file.size>12*1024*1024)throw Error('ZIP mayor de 12 MB.');
+ if(typeof fflate==='undefined')throw Error('Lector ZIP no disponible. Compruebe su conexión a Internet.');
+ const entries=fflate.unzipSync(new Uint8Array(await file.arrayBuffer()));
+ const names=Object.keys(entries).filter(n=>!n.endsWith('/'));
+ if(names.length>80)throw Error('Demasiados archivos en ZIP.');
+ if(names.some(n=>n.includes('/')||n.includes('\\')))throw Error('No incluya carpetas dentro del ZIP.');
+ const csv=names.filter(n=>n.toLowerCase().endsWith('.csv'));
+ if(csv.length!==1)throw Error('Incluya exactamente un archivo CSV.');
+ if(entries[csv[0]].length>2e6)throw Error('CSV demasiado grande.');
+ const images=new Map();
+ for(const n of names){
+  if(n===csv[0])continue;
+  if(!/\.(png|jpe?g|webp)$/i.test(n))throw Error('Archivo no permitido: '+n);
+  const data=entries[n];if(data.length>1024*1024)throw Error('Imagen mayor de 1 MB: '+n);
+  let mime='';
+  if(data[0]===137&&data[1]===80&&data[2]===78&&data[3]===71)mime='image/png';
+  else if(data[0]===255&&data[1]===216&&data[2]===255)mime='image/jpeg';
+  else if(data[0]===82&&data[1]===73&&data[2]===70&&data[3]===70&&data[8]===87)mime='image/webp';
+  if(!mime)throw Error('Imagen inválida: '+n);
+  if(images.has(n.toLowerCase()))throw Error('Nombre duplicado: '+n);
+  const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(Error('No se pudo leer '+n));reader.readAsDataURL(new Blob([data],{type:mime}))});
+  images.set(n.toLowerCase(),base64);
+ }
+ return {raw:new TextDecoder().decode(entries[csv[0]]),images};
+}
+function verifyQuestions(raw,images){
+ const rows=parseCSV(raw);if(rows.length<2)throw Error('CSV sin preguntas.');
+ const expected=['numero','pregunta','a','b','c','d','correcta','imagen'];
+ const header=rows.shift().map(x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase());
+ const ids=expected.map(x=>header.indexOf(x));
+ if(ids.slice(0,7).some(x=>x<0))throw Error('Encabezados incorrectos: descargue la plantilla.');
+ const valid=[],errors=[];
+ rows.forEach((r,i)=>{
+  if(r.every(x=>!x))return;
+  const col=j=>ids[j]<0?'':String(r[ids[j]]||'').trim();
+  const q=col(1),options=[col(2),col(3),col(4),col(5)],answer=col(6).toUpperCase(),img=col(7);
+  if(!q||options.some(x=>!x)||!['A','B','C','D'].includes(answer)){errors.push('Fila '+(i+2)+': pregunta o alternativas incompletas, o respuesta incorrecta.');return}
+  if(img&&!images.has(img.toLowerCase())){errors.push('Fila '+(i+2)+': falta imagen '+img);return}
+  valid.push({q,options,answer,img,imageData:img?images.get(img.toLowerCase()):''});
+ });
+ return {valid,errors};
+}
+$('file').onchange=async e=>{
+ const file=e.target.files[0];if(!file)return;$('status').textContent='Analizando archivo…';
+ try{
+  let raw,images=new Map();
+  if(file.name.toLowerCase().endsWith('.zip'))({raw,images}=await importZip(file));
+  else if(file.name.toLowerCase().endsWith('.csv')){if(file.size>2e6)throw Error('CSV mayor de 2 MB.');raw=await file.text()}
+  else throw Error('Utilice CSV o ZIP.');
+  const {valid,errors}=verifyQuestions(raw,images);renderPreview(valid);
+  importedQuestions=errors.length?[]:valid;
+  $('status').textContent=valid.length+' preguntas válidas, '+images.size+' imágenes. '+(errors.length?'Corrija antes de guardar: '+errors.slice(0,10).join(' | '):'✅ Archivo correcto. Puede guardar el borrador.');
+ }catch(err){importedQuestions=[];renderPreview([]);$('status').textContent='❌ '+err.message}
+};
 
 const STORE='reto_chats_drafts_v1';let activeDraft=null;
 function getDrafts(){try{return JSON.parse(localStorage.getItem(STORE)||'{}')}catch{return {}}}
 function refreshDrafts(){const d=getDrafts(),sel=$('savedDrafts');sel.replaceChildren();const base=document.createElement('option');base.value='';base.textContent='Seleccione un borrador';sel.append(base);Object.entries(d).sort((a,b)=>b[1].updated-a[1].updated).forEach(([id,x])=>{const op=document.createElement('option');op.value=id;op.textContent=x.title+' · '+new Date(x.updated).toLocaleDateString('es-PE');sel.append(op)});if(activeDraft&&d[activeDraft])sel.value=activeDraft}
 function draftMessage(v){$('draftStatus').textContent=v}
-$('saveDraft').onclick=()=>{const title=$('talkTitle').value.trim();if(!title){draftMessage('Ingrese primero el título de la charla.');$('talkTitle').focus();return}if(!importedQuestions.length){draftMessage('Primero cargue un CSV con al menos una pregunta válida.');return}const d=getDrafts();if(Object.keys(d).length>=30&&!activeDraft){draftMessage('Límite de 30 borradores en este navegador. Respalde los anteriores antes de continuar.');return}activeDraft=activeDraft||'b'+Date.now();d[activeDraft]={title,course:$('talkCourse').value.trim(),author:$('talkAuthor').value.trim(),questions:importedQuestions,updated:Date.now()};try{localStorage.setItem(STORE,JSON.stringify(d));refreshDrafts();draftMessage('✅ Borrador guardado en este navegador. No está publicado para estudiantes.')}catch(e){draftMessage('No se pudo guardar por falta de almacenamiento. Use Respaldar borrador JSON.')}};
+$('saveDraft').onclick=()=>{const title=$('talkTitle').value.trim();if(!title){draftMessage('Ingrese primero el título de la charla.');$('talkTitle').focus();return}if(!importedQuestions.length){draftMessage('Primero cargue un CSV o ZIP válido con preguntas.');return}const d=getDrafts();if(Object.keys(d).length>=30&&!activeDraft){draftMessage('Límite de 30 borradores en este navegador. Respalde los anteriores antes de continuar.');return}activeDraft=activeDraft||'b'+Date.now();d[activeDraft]={title,course:$('talkCourse').value.trim(),author:$('talkAuthor').value.trim(),questions:importedQuestions,updated:Date.now()};try{localStorage.setItem(STORE,JSON.stringify(d));refreshDrafts();draftMessage('✅ Borrador guardado en este navegador. No está publicado para estudiantes.')}catch(e){draftMessage('No se pudo guardar por falta de almacenamiento. Use Respaldar borrador JSON.')}};
 $('newDraft').onclick=()=>{activeDraft=null;importedQuestions=[];['talkTitle','talkCourse','talkAuthor'].forEach(id=>$(id).value='');$('preview').replaceChildren();$('file').value='';$('status').textContent='Todavía no se ha cargado un archivo.';refreshDrafts();$('savedDrafts').value='';draftMessage('Nueva charla lista para preparar.')};
 $('loadDraft').onclick=()=>{const id=$('savedDrafts').value,d=getDrafts()[id];if(!d){draftMessage('Seleccione un borrador válido.');return}activeDraft=id;$('talkTitle').value=d.title;$('talkCourse').value=d.course||'';$('talkAuthor').value=d.author||'';importedQuestions=d.questions||[];renderPreview(importedQuestions);$('status').textContent=importedQuestions.length+' preguntas recuperadas del borrador.';draftMessage('Borrador abierto. Puede modificar sus datos y guardarlo nuevamente.')};
 $('deleteDraft').onclick=()=>{const id=$('savedDrafts').value;if(!id){draftMessage('Seleccione primero un borrador.');return}if(!confirm('¿Eliminar este borrador guardado en este navegador?'))return;const d=getDrafts();delete d[id];try{localStorage.setItem(STORE,JSON.stringify(d))}catch{}if(activeDraft===id)activeDraft=null;refreshDrafts();draftMessage('Borrador eliminado.')};
 $('exportDraft').onclick=()=>{const title=$('talkTitle').value.trim();if(!title||!importedQuestions.length){draftMessage('Escriba el título y cargue las preguntas antes de respaldar.');return}const payload={format:'reto-charlas-draft-v1',title,course:$('talkCourse').value.trim(),author:$('talkAuthor').value.trim(),questions:importedQuestions,exportedAt:new Date().toISOString()};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='charla_'+title.toLowerCase().replace(/[^a-z0-9áéíóúñ]+/g,'_').slice(0,40)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);draftMessage('Respaldo descargado. Mantenga este archivo en un lugar seguro.')};
-function renderPreview(valid){const dest=$('preview');dest.replaceChildren();valid.forEach((q,i)=>{const tr=document.createElement('tr');for(const item of [i+1,q.q,q.options.map((x,k)=>'ABCD'[k]+': '+x).join(' · '),q.answer]){const td=document.createElement('td');td.textContent=item;tr.append(td)}dest.append(tr)});if(!valid.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=4;td.textContent='No hay preguntas cargadas.';tr.append(td);dest.append(tr)}}
+function renderPreview(valid){const dest=$('preview');dest.replaceChildren();valid.forEach((q,i)=>{const tr=document.createElement('tr');for(const item of [i+1,q.q,q.options.map((x,k)=>'ABCD'[k]+': '+x).join(' · '),q.answer]){const td=document.createElement('td');td.textContent=item;tr.append(td)}const imgCell=document.createElement('td');if(q.imageData){const image=document.createElement('img');image.src=q.imageData;image.alt='Imagen de la pregunta '+(i+1);image.style.cssText='max-width:180px;max-height:140px;object-fit:contain';imgCell.append(image)}else imgCell.textContent='Sin imagen';tr.append(imgCell);dest.append(tr)});if(!valid.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=5;td.textContent='No hay preguntas cargadas.';tr.append(td);dest.append(tr)}}
 refreshDrafts();
-</script></body></html>
+</script><script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js" defer></script></body></html>
