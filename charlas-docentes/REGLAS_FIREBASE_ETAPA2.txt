@@ -1,51 +1,25 @@
-// Etapa 2 — RETO UNIVERSITARIO / Charlas y Cursos
-// IMPORTANTE: Este bloque debe incorporarse DENTRO de
-// match /databases/{database}/documents { ... }
-// en las reglas EXISTENTES. NO reemplazar las reglas de rooms,
-// participants ni responses utilizadas por Portal del Estudiante.
-//
-// El administrador es el titular de UID indicado abajo.
-// Los correos autorizados se guardan en teacherInvites/{emailMinusculas}.
+// RETO UNIVERSITARIO – Charlas y Cursos (Etapa 2)
+// Agregar SOLO este bloque dentro de match /databases/{database}/documents
+// de las reglas existentes. NO borrar reglas de rooms/participants/responses.
 match /teacherInvites/{teacherEmail} {
-  allow get: if request.auth != null && (
-    request.auth.uid == 'xok3lxvoHGQte2zOIaYM81XCHZi2' ||
-    (request.auth.token.email_verified == true &&
-     request.auth.token.email == teacherEmail &&
-     teacherEmail.matches('^[^@]+@cientifica\\.edu\\.pe)
+  function isAdmin() {
+    return request.auth != null &&
+      request.auth.uid == 'xok3lxvoHGQte2zOIaYM81XCHZi2';
+  }
+  function isInstitutional() {
+    return teacherEmail.matches('^[^@]+@cientifica[.]edu[.]pe$');
+  }
+  allow get: if isAdmin() || (
+    request.auth != null &&
+    request.auth.token.email_verified == true &&
+    request.auth.token.email == teacherEmail &&
+    isInstitutional()
   );
   allow list: if false;
-  allow create, update, delete: if request.auth != null &&
-    request.auth.uid == 'xok3lxvoHGQte2zOIaYM81XCHZi2' &&
-    teacherEmail.matches('^[^@]+@cientifica\\.edu\\.pe
+  allow create, update: if isAdmin() && isInstitutional() &&
+    request.resource.data.email == teacherEmail &&
+    request.resource.data.active is bool;
+  allow delete: if isAdmin();
 }
-// Los permisos para charlas compartidas, sesiones y resultados
-// se definirán después con ownership y validación de activo.
-// ATENCIÓN: Actualmente los borradores se almacenan en localStorage,
-// por lo que este fragmento NO restringe su edición local.
-))
-  );
-  allow list: if false;
-  allow create, update, delete: if request.auth != null &&
-    request.auth.uid == 'xok3lxvoHGQte2zOIaYM81XCHZi2';
-}
-// Los permisos para charlas compartidas, sesiones y resultados
-// se definirán después con ownership y validación de activo.
-// ATENCIÓN: Actualmente los borradores se almacenan en localStorage,
-// por lo que este fragmento NO restringe su edición local.
-) &&
-    (request.method == 'delete' || (request.resource.data.email == teacherEmail && request.resource.data.active is bool));
-}
-// Los permisos para charlas compartidas, sesiones y resultados
-// se definirán después con ownership y validación de activo.
-// ATENCIÓN: Actualmente los borradores se almacenan en localStorage,
-// por lo que este fragmento NO restringe su edición local.
-))
-  );
-  allow list: if false;
-  allow create, update, delete: if request.auth != null &&
-    request.auth.uid == 'xok3lxvoHGQte2zOIaYM81XCHZi2';
-}
-// Los permisos para charlas compartidas, sesiones y resultados
-// se definirán después con ownership y validación de activo.
-// ATENCIÓN: Actualmente los borradores se almacenan en localStorage,
-// por lo que este fragmento NO restringe su edición local.
+// Los borradores locales NO están protegidos por estas reglas.
+// Las futuras charlas compartidas requerirán reglas adicionales.
