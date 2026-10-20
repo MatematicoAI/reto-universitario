@@ -185,16 +185,37 @@ $('emailLinkSignIn').onclick=()=>{
 async function finishEmailLink(){
  if(!isSignInWithEmailLink(auth,window.location.href))return;
  document.querySelector('[data-role="teacher"]').click();
- let email=localStorage.getItem(EMAIL_LINK_KEY)||'';
- if(!email)email=prompt('Escriba el correo institucional al que llegó el enlace:')?.trim().toLowerCase()||'';
- if(!institutional(email)){message('authStatus','Ingrese el correo institucional destinatario para finalizar.');return}
+ // El correo puede abrirse en otro dispositivo o quedar un correo antiguo en el navegador.
+ // Nunca aplicar silenciosamente un correo almacenado a un enlace diferente.
+ const previous=localStorage.getItem(EMAIL_LINK_KEY)||'';
+ const raw=prompt('Confirme el correo institucional al que llegó este enlace:',previous)||'';
+ const email=raw.trim().toLowerCase();
+ if(!institutional(email)){
+  message('authStatus','Para terminar, abra de nuevo este mismo enlace e introduzca el correo institucional destinatario.');
+  return;
+ }
+ message('authStatus','Verificando su enlace de acceso…');
  try{
   const result=await signInWithEmailLink(auth,email,window.location.href);
   if(!institutional(result.user.email)){await signOut(auth);throw Error('El correo no es institucional.')}
   localStorage.removeItem(EMAIL_LINK_KEY);
   history.replaceState(null,'',window.location.pathname);
-  message('authStatus','Enlace confirmado. Comprobando su autorización...');
- }catch(e){message('authStatus','No se pudo completar el ingreso: '+e.message)}
+  const status=await checkAccess(result.user);
+  const allowed=result.user.uid===ADMIN||(result.user.emailVerified&&status==='Docente autorizado. Puede preparar su charla.');
+  window.retoAuthorizedUid=allowed?result.user.uid:null;
+  $('teacherWorkspace').hidden=!allowed;
+  message('authStatus',status);
+  if(allowed)$('newDraft').click();
+ }catch(e){
+  const code=e&&e.code||'';
+  if(code==='auth/invalid-action-code'||code==='auth/expired-action-code'){
+   message('authStatus','Este enlace ya no es válido o ha caducado. Solicite uno nuevo y utilice únicamente el correo más reciente. Confirme que escribe exactamente la dirección a la que llegó el mensaje.');
+  }else if(code==='auth/invalid-email'){
+   message('authStatus','El correo ingresado no coincide con un formato válido. Abra el enlace nuevamente y confirme la dirección.');
+  }else{
+   message('authStatus','No se pudo completar el ingreso: '+(e.message||'Error desconocido'));
+  }
+ }
 }
 finishEmailLink();
 $('signOut').onclick=async()=>{await signOut(auth)};
