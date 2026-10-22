@@ -7,7 +7,7 @@
 <button class="role" data-role="teacher"><span>📚</span><strong>Soy docente</strong><small>Crear charlas, preguntas e imágenes</small></button>
 <button class="role" data-role="admin"><span>🛡️</span><strong>Soy administrador</strong><small>Autorizar y gestionar docentes</small></button></div></section>
 <section id="studentModule" class="card role-module" hidden><button class="secondary goHome">← Volver</button><h2>🎓 Soy estudiante</h2><p class="notice">El acceso de estudiantes para esta segunda aplicación se activará cuando estén listas las sesiones independientes y las reglas de seguridad de Firebase.</p><label for="studentSession">Código de sesión</label><input id="studentSession" maxlength="6" placeholder="Código proporcionado por el docente" disabled><button disabled>Ingresar a la charla (próximamente)</button><p>Esta aplicación todavía permite preparar charlas; no inicia sesiones reales.</p></section>
-<div id="teacherModule" class="role-module" hidden><section class="card" id="access"><h2>🔐 Acceso y autorización docente</h2><p class="notice">El acceso a las herramientas docentes requiere una cuenta institucional autorizada y correo electrónico verificado.</p>
+<div id="teacherModule" class="role-module" hidden><section class="card" id="access"><button class="secondary goHome">← Volver</button><h2>🔐 Acceso y autorización docente</h2><p class="notice">El acceso a las herramientas docentes requiere una cuenta institucional autorizada y correo electrónico verificado.</p>
 <div id="authPanel"><label for="authEmail">Correo institucional del docente</label><input type="email" id="authEmail" autocomplete="email" placeholder="docente@cientifica.edu.pe">
 <button id="emailLinkSignIn" type="button">📩 Solicitar enlace desde el correo de soporte</button>
 <p class="muted">Solo docentes autorizados. El enlace enviado al correo permite verificar su dirección e ingresar sin contraseña.</p></div>
@@ -32,7 +32,7 @@
 <div id="adminPanel" hidden><h3>🛡️ Panel de Administrador General</h3><p>Registre primero el correo de cada docente para autorizar su ingreso. También puede suspender su acceso.</p>
 <label for="inviteEmail">Correo a autorizar</label><input id="inviteEmail" type="email" placeholder="docente@cientifica.edu.pe">
 <label for="inviteName">Nombre y apellidos</label><input id="inviteName" maxlength="120" placeholder="Nombres completos">
-<button id="authorize">Autorizar docente</button><button id="suspend" class="secondary">Suspender docente</button><p id="adminStatus" role="status"></p><p class="muted">El docente tendrá que crear su contraseña y verificar su correo desde su propio dispositivo.</p>
+<button id="authorize">Autorizar docente</button><button id="suspend" class="secondary">Suspender docente</button><p id="adminStatus" role="status"></p><p class="muted">El docente ingresará con el enlace enviado por soporte a su correo institucional autorizado.</p>
 <hr><h3>📥 Carga masiva de docentes (hasta 20 por lote)</h3>
 <p>1. Descargue la plantilla. 2. Escriba nombres, apellidos y correo institucional de cada docente. 3. Guarde en CSV UTF-8. 4. Cargue, revise los datos y confirme la autorización.</p>
 <button id="downloadTeachers" type="button" class="secondary">⬇ Descargar plantilla de 20 docentes (CSV)</button>
@@ -114,7 +114,8 @@ $('file').onchange=async e=>{
 };
 
 const STORE='reto_chats_drafts_v1';let activeDraft=null;
-function getDrafts(){try{return JSON.parse(localStorage.getItem(STORE)||'{}')}catch{return {}}}
+function draftStore(){return window.retoAuthorizedUid?STORE+':'+window.retoAuthorizedUid:null}
+function getDrafts(){const key=draftStore();if(!key)return {};try{const data=JSON.parse(localStorage.getItem(key)||'{}');return data&&typeof data==='object'&&!Array.isArray(data)?data:{}}catch{return {}}}
 function refreshDrafts(){const d=getDrafts(),sel=$('savedDrafts');sel.replaceChildren();const base=document.createElement('option');base.value='';base.textContent='Seleccione un borrador';sel.append(base);Object.entries(d).sort((a,b)=>b[1].updated-a[1].updated).forEach(([id,x])=>{const op=document.createElement('option');op.value=id;op.textContent=x.title+' · '+new Date(x.updated).toLocaleDateString('es-PE');sel.append(op)});if(activeDraft&&d[activeDraft])sel.value=activeDraft}
 function draftMessage(v){$('draftStatus').textContent=v}
 $('saveDraft').onclick=()=>{if(!draftStore()){draftMessage('Acceso no autorizado.');return}const title=$('talkTitle').value.trim();if(!title){draftMessage('Ingrese primero el título de la charla.');$('talkTitle').focus();return}if(!importedQuestions.length){draftMessage('Primero cargue un CSV o ZIP válido con preguntas.');return}const d=getDrafts();if(Object.keys(d).length>=30&&!activeDraft){draftMessage('Límite de 30 borradores en este navegador. Respalde los anteriores antes de continuar.');return}activeDraft=activeDraft||'b'+Date.now();d[activeDraft]={title,course:$('talkCourse').value.trim(),author:$('talkAuthor').value.trim(),questions:importedQuestions,updated:Date.now()};try{localStorage.setItem(draftStore(),JSON.stringify(d));refreshDrafts();draftMessage('✅ Borrador guardado en este navegador. No está publicado para estudiantes.')}catch(e){draftMessage('No se pudo guardar por falta de almacenamiento. Use Respaldar borrador JSON.')}};
